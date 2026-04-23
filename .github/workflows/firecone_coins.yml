@@ -47,9 +47,9 @@ jobs:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           TG_BOT:        ${{ secrets.TG_BOT }}
           GOST_PROXY:    http://127.0.0.1:8080
-        run: npx playwright test tests/firecone.spec.js --timeout=180000
+        run: npx playwright test tests/firecone.spec.js
       - name: 📸 上传失败截图
-        if: always()   # ← 原来是 failure()
+        if: always()   # 无论成功失败都会保留截图分析
         uses: actions/upload-artifact@v4
         with:
           name: screenshots
