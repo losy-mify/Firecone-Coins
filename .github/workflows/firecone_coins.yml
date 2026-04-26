@@ -1,31 +1,44 @@
-name: 🔥 Firecone 每日签到 & 赚币
+name: Firecone-Coins
+
 on:
-  schedule:
-    - cron: '0 2 * * *'   # 每天 UTC 02:00（北京时间 10:00）
   workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'   # 每天 UTC 02:00（北京时间 10:00）自动触发，可按需调整
+
 jobs:
-  daily:
-    name: 🎯 执行每日任务
+  run_firecone:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
-      - name: 📥 拉取私库代码
+      - name: 📥 下载私库脚本
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/Firecone-Coins-Private
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-      - name: 🟢 安装 Node.js
-        uses: actions/setup-node@v4
+          path: private
+
+      - name: 📂 移动脚本到工作目录
+        run: mv private/firecone_coins.py firecone_coins.py
+
+      - name: 🐍 设置 Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '22'
-      - name: 📦 安装依赖
-        run: npm install
-      - name: 🔧 安装 Patchright
+          python-version: '3.x'
+
+      - name: 🛠️ 安装系统依赖
         run: |
-          npm i patchright
-          npx patchright install chromium --with-deps
-      - name: 🌐 安装 Playwright 浏览器
-        run: npx playwright install chromium --with-deps
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            google-chrome-stable \
+            xvfb \
+            x11-utils \
+            scrot
+
+      - name: 🐍 安装 Python 依赖
+        run: |
+          pip install seleniumbase requests
+          seleniumbase install chromedriver
+
       - name: 🛡️ 启动 GOST 代理转发
         if: ${{ env.GOST_PROXY != '' }}
         env:
@@ -39,19 +52,23 @@ jobs:
           chmod +x gost
           nohup ./gost -L http://:8080 -F "$GOST_PROXY" > gost.log 2>&1 &
           sleep 3
-          echo "✅ GOST 已启动，测试连通性..."
-          curl -s -x http://127.0.0.1:8080 https://api.ipify.org \
-            | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\.\)[0-9]*/\1**/g'
-      - name: 🚀 运行每日任务脚本
+          IP=$(curl -s -x http://127.0.0.1:8080 https://api.ipify.org)
+          IP_MASKED=$(echo "$IP" | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\.\)[0-9]*/\1xxx/')
+          echo "✅ GOST 已启动，出口IP：$IP_MASKED"
+
+      - name: 🚀 运行 Firecone 日常脚本
         env:
+          PYTHONIOENCODING: utf-8
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          TG_BOT:        ${{ secrets.TG_BOT }}
-          GOST_PROXY:    http://127.0.0.1:8080
-        run: npx playwright test tests/firecone.spec.js
-      - name: 📸 上传失败截图
-        if: always()   # 无论成功失败都会保留截图分析
+          GOST_PROXY: ${{ secrets.GOST_PROXY }}
+          TG_BOT: ${{ secrets.TG_BOT }}
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python firecone_coins.py
+
+      - name: 📸 上传调试截图
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots
-          path: test-results/
-          retention-days: 7
+          name: debug-screenshots-${{ github.run_id }}
+          path: "*.png"
+          retention-days: 3
