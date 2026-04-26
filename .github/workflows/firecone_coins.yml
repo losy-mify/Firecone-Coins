@@ -3,7 +3,7 @@ name: Firecone-Coins
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'   # 每天 UTC 02:00（北京时间 10:00）自动触发，可按需调整
+    - cron: '0 2,8,14,20 * * *'   # 每天 UTC 02/08/14/20:00（北京时间 10/16/22/04:00）
 
 jobs:
   run_firecone:
