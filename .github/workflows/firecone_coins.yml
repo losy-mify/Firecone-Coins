@@ -60,6 +60,7 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          FIRECONE_SID: ${{ secrets.FIRECONE_SID }}
           GOST_PROXY: ${{ secrets.GOST_PROXY }}
           TG_BOT: ${{ secrets.TG_BOT }}
         run: |
